@@ -1,0 +1,1302 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>十十乘法挑戰賽 | 古氏積木大師</title>
+    <!-- Vue.js 3 -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        /* 字體設定 */
+        @import url('https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700&display=swap');
+        
+        @font-face {
+            font-family: 'Iansui';
+            src: url('https://cdn.jsdelivr.net/npm/iansui@0.9.4/data/Iansui-Regular.woff2') format('woff2');
+            font-display: swap;
+        }
+
+        body {
+            font-family: 'Iansui', 'Zen Maru Gothic', 'HiraMaruProN-W4', 'YuRumin', sans-serif;
+            background: linear-gradient(180deg, #92A8D1 0%, #F7CAC9 100%);
+            background-attachment: fixed;
+            color: #555;
+            height: 100vh;
+            height: 100dvh; /* Dynamic Viewport Height for mobile */
+            overflow: hidden;
+        }
+
+        /* SEVENTEEN Colors */
+        .bg-rose-quartz { background-color: #F7CAC9; }
+        .bg-serenity { background-color: #92A8D1; }
+        .text-serenity { color: #92A8D1; }
+        
+        .btn-primary {
+            background-color: #92A8D1;
+            color: white;
+            transition: all 0.2s ease;
+        }
+        .btn-primary:hover {
+            background-color: #7a92c0;
+            transform: translateY(-2px);
+        }
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        /* -------------------------------------------
+           古氏積木樣式 (螢幕互動顯示用 - 保持原色)
+           ------------------------------------------- */
+        .rod-base {
+            border: 1px solid rgba(0,0,0,0.3); 
+            box-sizing: border-box;
+            background-image: linear-gradient(0deg, transparent calc(100% - 1px), rgba(255,255,255,0.7) calc(100% - 1px));
+            box-shadow: 2px 2px 4px rgba(0,0,0,0.15);
+        }
+
+        /* 螢幕顯示顏色定義 */
+        .rod-1 { 
+            background-color: #ffffff !important; 
+            border: 2px solid #94a3b8 !important; /* 加深白色積木邊框 */
+            box-shadow: inset 0 0 6px rgba(0,0,0,0.1), 2px 2px 4px rgba(0,0,0,0.15) !important;
+        }
+        .rod-2 { background-color: #ff6b6b !important; }
+        .rod-3 { background-color: #96f2d7 !important; }
+        .rod-4 { background-color: #d0bfff !important; }
+        .rod-5 { background-color: #fcc419 !important; }
+        .rod-6 { background-color: #51cf66 !important; }
+        .rod-7 { background-color: #212529 !important; color: white; } 
+        .rod-8 { background-color: #8B4513 !important; color: white; } 
+        .rod-9 { background-color: #339af0 !important; color: white; } 
+        .rod-10 { background-color: #ff922b !important; } 
+
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* 進度條動畫 */
+        @keyframes progress-stripes {
+            from { background-position: 1rem 0; }
+            to { background-position: 0 0; }
+        }
+        .animate-stripes {
+            animation: progress-stripes 1s linear infinite;
+        }
+
+        /* -------------------------------------------
+           學習單樣式 (通用於 預覽 與 列印)
+           ------------------------------------------- */
+        
+        /* 學習單頁面容器 */
+        .worksheet-page {
+            background: white;
+            width: 210mm;
+            min-height: 297mm;
+            padding: 10mm 15mm; 
+            margin-bottom: 20px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            box-sizing: border-box;
+            position: relative;
+        }
+
+        /* 學習單上的積木 - 加強輪廓與格線，調整格線大小為 16px */
+        .rod-base-print {
+            border: 2px solid black !important; /* 純黑粗框 */
+            box-sizing: border-box;
+            /* 黑色格線，清晰可見 */
+            background-image: linear-gradient(0deg, #000 1px, transparent 1px) !important;
+            background-size: 100% 16px !important; 
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        /* 列印模式顏色調整 (針對深色積木) 
+           讓黑色格線更明顯
+        */
+        .rod-base-print.rod-7 { background-color: #ced4da !important; color: black !important; } /* 黑改淺灰 */
+        .rod-base-print.rod-8 { background-color: #e0b494 !important; color: black !important; } /* 棕改淺棕 */
+        .rod-base-print.rod-9 { background-color: #90cdf4 !important; color: black !important; } /* 藍改淺藍 */
+        .rod-base-print.rod-10 { background-color: #fbd38d !important; color: black !important; } /* 橘改淺橘 */
+        
+        /* 其他淺色保持原樣，確保格線可見 */
+        .rod-base-print.rod-1 { border: 2px solid #666 !important; } /* 白色加深框 */
+
+        /* 學習單輸入方框 */
+        .print-input-box {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 2px solid #000 !important; 
+            vertical-align: middle;
+            margin: 0 4px;
+            background: white;
+            box-shadow: 2px 2px 0px rgba(0,0,0,0.1); 
+        }
+
+        /* =========================================
+           列印專用樣式 (@media print)
+           ========================================= */
+        @media print {
+            .no-print, .admin-btn, #app > div:not(.print-container) { display: none !important; }
+            
+            body, html, #app { 
+                background: white !important; 
+                height: auto !important; 
+                overflow: visible !important; 
+                width: 100% !important; 
+                margin: 0 !important; 
+                padding: 0 !important; 
+            }
+            
+            .print-container { 
+                display: block !important; 
+                width: 100% !important; 
+                height: auto !important; 
+                box-shadow: none !important; 
+                margin: 0 !important; 
+                padding: 0 !important; 
+                overflow: visible !important; 
+                background: white !important;
+            }
+
+            .worksheet-page {
+                box-shadow: none !important;
+                margin: 0 !important;
+                width: 100% !important;
+                min-height: 297mm !important;
+                page-break-after: always;
+                break-after: page;
+            }
+            
+            .worksheet-page:last-child {
+                page-break-after: auto;
+                break-after: auto;
+            }
+
+            .print-input-box {
+                box-shadow: none !important;
+            }
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center h-screen w-screen">
+
+<div id="app" class="w-full h-full flex flex-col items-center justify-center p-2 md:p-4 relative">
+
+    <!-- Admin Button -->
+    <div class="absolute bottom-4 right-4 z-50 no-print admin-btn">
+        <button @click="currentView = 'adminLogin'" class="flex items-center gap-2 text-gray-600 hover:text-serenity bg-white/40 hover:bg-white/90 px-4 py-2 rounded-full transition-all shadow-sm backdrop-blur-sm text-sm font-bold border border-white/50">
+            <i class="fas fa-cog"></i>
+            <span>教師後台</span>
+        </button>
+    </div>
+
+    <!-- MAIN CONTAINER -->
+    <div v-if="currentView !== 'worksheetPreview'" class="bg-white rounded-3xl shadow-2xl w-full max-w-4xl h-full max-h-[95vh] flex flex-col relative no-print overflow-hidden">
+        
+        <!-- VIEW: HOME (Settings) -->
+        <div v-if="currentView === 'home'" class="p-4 md:p-6 flex-1 flex flex-col overflow-hidden">
+            <h1 class="text-4xl md:text-6xl font-bold text-center text-serenity mb-2 md:mb-4 shrink-0 pt-2 md:pt-4 tracking-tight">十十乘法挑戰賽</h1>
+            
+            <div class="flex-1 overflow-y-auto scrollbar-hide px-1 space-y-2 flex flex-col justify-center">
+                <!-- Settings Content -->
+                <div class="bg-rose-50 p-2 md:p-4 rounded-2xl shrink-0">
+                    <div class="flex justify-between items-center mb-1">
+                        <label class="font-bold text-lg text-gray-700"><i class="fas fa-list-ol mr-2 text-rose-quartz"></i>選擇挑戰數字</label>
+                        <div class="space-x-1">
+                            <button @click="selectAllMultipliers" class="text-xs bg-white text-serenity px-3 py-1 rounded border border-serenity hover:bg-serenity hover:text-white transition-colors">全選</button>
+                            <button @click="settings.multipliers = []" class="text-xs bg-white text-gray-400 px-3 py-1 rounded border border-gray-300 hover:bg-gray-100 transition-colors">清空</button>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-5 gap-2">
+                        <label v-for="n in 10" :key="n" class="cursor-pointer relative group">
+                            <input type="checkbox" :value="n" v-model="settings.multipliers" class="hidden">
+                            <!-- 修正：使用動態 Class 取代 CSS sibling selector，解決點擊變白/延遲問題 -->
+                            <div :class="[
+                                'w-full h-10 md:h-12 flex items-center justify-center rounded-lg border-2 transition-all font-bold text-xl shadow-sm select-none',
+                                settings.multipliers.includes(n) 
+                                    ? 'bg-serenity text-white border-serenity transform scale-105 shadow-md' 
+                                    : 'bg-white border-transparent text-gray-400 hover:bg-gray-50'
+                            ]">
+                                {{ n }}
+                                <i v-if="settings.multipliers.includes(n)" class="fas fa-check absolute top-0.5 right-0.5 text-[10px] md:text-xs"></i>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3 shrink-0">
+                    <div class="bg-rose-50 p-2 md:p-3 rounded-2xl">
+                        <label class="font-bold text-gray-700 block mb-1 text-base"><i class="fas fa-calculator mr-2 text-rose-quartz"></i>題數</label>
+                        <div class="flex items-center h-full max-h-[44px]">
+                            <input type="number" v-model.number="settings.questionCount" min="1" max="100" class="w-full h-10 p-2 rounded-lg border-2 border-white focus:border-serenity outline-none bg-white text-center font-bold text-xl">
+                            <span class="ml-2 text-gray-500 text-sm whitespace-nowrap">題</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-rose-50 p-2 md:p-3 rounded-2xl flex flex-col justify-center">
+                        <label class="font-bold text-gray-700 block mb-1 text-base"><i class="fas fa-shapes mr-2 text-rose-quartz"></i>類型</label>
+                        <div class="flex flex-row gap-2 items-center h-full max-h-[44px]">
+                            <button @click="settings.cardType = 'number'" :class="{'bg-serenity text-white': settings.cardType === 'number', 'bg-white text-gray-500': settings.cardType !== 'number'}" class="flex-1 h-10 flex items-center justify-center rounded-lg text-sm transition-all border border-transparent font-medium whitespace-nowrap">純數字</button>
+                            <button @click="settings.cardType = 'block'" :class="{'bg-serenity text-white': settings.cardType === 'block', 'bg-white text-gray-500': settings.cardType !== 'block'}" class="flex-1 h-10 flex items-center justify-center rounded-lg text-sm transition-all border border-transparent font-medium whitespace-nowrap">古氏積木</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-rose-50 p-2 md:p-3 rounded-2xl shrink-0">
+                    <label class="font-bold text-gray-700 block mb-1 text-base"><i class="fas fa-pencil-alt mr-2 text-rose-quartz"></i>挑戰方式</label>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        <div @click="settings.answerMode = 'simple'" :class="{'border-serenity bg-blue-50 ring-2 ring-serenity/20': settings.answerMode === 'simple', 'border-transparent bg-white': settings.answerMode !== 'simple'}" class="p-2 rounded-xl border-2 cursor-pointer transition-all flex flex-col items-center justify-center text-center h-16 md:h-18">
+                            <span class="font-bold text-serenity text-base mb-0.5">填寫答案</span>
+                            <span class="text-xs text-gray-400 leading-tight">只需回答最後的積</span>
+                        </div>
+                        <div @click="settings.answerMode = 'full'" :class="{'border-serenity bg-blue-50 ring-2 ring-serenity/20': settings.answerMode === 'full', 'border-transparent bg-white': settings.answerMode !== 'full'}" class="p-2 rounded-xl border-2 cursor-pointer transition-all flex flex-col items-center justify-center text-center h-16 md:h-18">
+                            <span class="font-bold text-serenity text-base mb-0.5">建構算式</span>
+                            <span class="text-xs text-gray-400 leading-tight">填入完整算式</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-3 shrink-0 pb-1">
+                <button @click="goToStudentName" :disabled="settings.multipliers.length === 0 || !settings.questionCount || settings.questionCount < 1" class="btn-primary w-full py-3 md:py-4 rounded-2xl text-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg transform active:scale-[0.99] transition-all">
+                    下一步 <i class="fas fa-arrow-right ml-2"></i>
+                </button>
+                <div class="h-4 text-center mt-1">
+                     <p v-if="settings.multipliers.length === 0" class="text-red-400 text-xs">請至少選擇一個數字！</p>
+                     <p v-else-if="!settings.questionCount || settings.questionCount < 1" class="text-red-400 text-xs">題數必須大於 0！</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW: STUDENT NAME -->
+        <div v-if="currentView === 'studentName'" class="p-8 flex-1 flex flex-col items-center justify-center relative">
+            <button @click="currentView = 'home'" class="absolute top-8 left-8 text-gray-400 hover:text-serenity"><i class="fas fa-arrow-left mr-1"></i> 修改設定</button>
+            <div class="w-full max-w-md text-center">
+                <h2 class="text-2xl md:text-3xl font-bold text-serenity mb-8">你好！請問你的名字是？</h2>
+                <div class="space-y-4 mb-12">
+                    <input type="text" v-model="studentName" placeholder="輸入名字..." class="w-full p-4 text-2xl text-center border-b-4 border-rose-quartz focus:border-serenity outline-none bg-transparent transition-colors placeholder-gray-300">
+                    
+                    <div class="relative">
+                        <select v-model="studentGrade" class="w-full p-4 text-xl text-center border-b-4 border-rose-quartz focus:border-serenity outline-none bg-transparent appearance-none text-gray-600 cursor-pointer">
+                            <option value="" disabled selected>選擇年級</option>
+                            <option value="1">一年級</option>
+                            <option value="2">二年級</option>
+                            <option value="3">三年級</option>
+                            <option value="4">四年級</option>
+                            <option value="5">五年級</option>
+                            <option value="6">六年級</option>
+                        </select>
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <button @click="startQuiz(false)" :disabled="!studentName.trim() || !studentGrade" class="btn-primary w-full py-4 rounded-2xl text-xl font-bold disabled:opacity-50 shadow-md">
+                    開始挑戰！ <i class="fas fa-rocket ml-2"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- VIEW: QUIZ -->
+        <div v-if="currentView === 'quiz'" class="flex-1 flex flex-col h-full overflow-hidden">
+            
+            <div class="w-full max-w-3xl mx-auto px-4 pt-4 pb-2 shrink-0 flex flex-col gap-2">
+                <div class="flex justify-between items-end text-gray-500 font-bold">
+                    <div class="flex items-center text-lg text-serenity">
+                        <i class="fas fa-user-graduate mr-2"></i>{{ studentName }} <span class="text-xs ml-2 text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">{{ studentGrade }}年級</span>
+                    </div>
+                    <div class="text-sm bg-white px-3 py-1 rounded-full shadow-sm border border-gray-100 flex items-center">
+                        第 <span class="text-serenity text-lg font-bold mx-1">{{ currentQuestionIndex + 1 }}</span> / {{ quizQuestions.length }} 題
+                    </div>
+                </div>
+                <div class="w-full bg-white h-4 rounded-full border border-gray-100 p-0.5 shadow-inner">
+                    <div class="bg-serenity h-full rounded-full transition-all duration-500 ease-out relative overflow-hidden" :style="{ width: progressPercent + '%' }">
+                        <div class="absolute inset-0 w-full h-full animate-stripes opacity-30 bg-[linear-gradient(45deg,rgba(255,255,255,0.4)_25%,transparent_25%,transparent_50%,rgba(255,255,255,0.4)_50%,rgba(255,255,255,0.4)_75%,transparent_75%,transparent)] bg-[length:1rem_1rem]"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quiz Content Area -->
+            <div class="flex-1 flex flex-col items-center p-2 md:p-4 w-full max-w-3xl mx-auto overflow-hidden">
+                <div ref="rodsContainer" class="flex-1 w-full bg-white rounded-3xl shadow-sm border border-gray-100 flex flex-col items-center justify-center mb-4 relative overflow-hidden p-4">
+                    
+                    <div class="w-full h-full flex flex-col items-center justify-center overflow-hidden">
+                        <!-- Mode A: Pure Number -->
+                        <div v-if="settings.cardType === 'number'" class="text-[60px] md:text-[100px] font-bold text-gray-600 font-mono tracking-wider">
+                            {{ currentQuestion.multiplier }} × {{ currentQuestion.count }}
+                        </div>
+
+                        <!-- Mode B: Cuisenaire Rods -->
+                        <div v-if="settings.cardType === 'block'" class="flex flex-row items-end justify-center gap-1 md:gap-2 max-h-full w-fit mx-auto transition-all duration-300">
+                             <div v-for="r in currentQuestion.count" :key="r" class="flex flex-col items-center shrink-0">
+                                <div :class="['rod-base', getRodClass(currentQuestion.multiplier)]" 
+                                     :style="getDynamicRodStyle(currentQuestion.multiplier)">
+                                </div>
+                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="w-full shrink-0">
+                    <div class="flex flex-wrap items-center justify-center gap-2 text-xl md:text-3xl font-bold text-gray-600 bg-rose-50 p-4 md:p-6 rounded-2xl shadow-inner">
+                        <template v-if="settings.answerMode === 'full'">
+                            <input ref="inputA" type="number" v-model="userInputs.a" class="w-16 md:w-24 text-center p-2 rounded-xl border-2 border-rose-quartz focus:border-serenity outline-none bg-white" placeholder="?">
+                            <span class="text-serenity">×</span>
+                            <input type="number" v-model="userInputs.b" class="w-16 md:w-24 text-center p-2 rounded-xl border-2 border-rose-quartz focus:border-serenity outline-none bg-white" placeholder="?">
+                            <span class="text-serenity">=</span>
+                        </template>
+                        <template v-else>
+                            <span class="mx-2">{{ currentQuestion.multiplier }} × {{ currentQuestion.count }} = </span>
+                        </template>
+
+                        <input ref="inputAns" type="number" v-model="userInputs.ans" @keyup.enter="submitAnswer" class="w-20 md:w-28 text-center p-2 rounded-xl border-2 border-serenity focus:ring-4 focus:ring-serenity/30 outline-none bg-white text-serenity shadow-lg" placeholder="?">
+                        
+                        <button @click="submitAnswer" class="ml-2 w-12 h-12 md:w-14 md:h-14 rounded-full bg-serenity text-white flex items-center justify-center hover:bg-blue-400 shadow-md active:scale-95 transition-all">
+                            <i class="fas fa-check"></i>
+                        </button>
+                    </div>
+                    <p class="text-center mt-2 text-gray-400 text-xs">輸入後按 Enter 或打勾</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW: RESULT -->
+        <div v-if="currentView === 'result'" class="p-6 md:p-8 flex-1 flex flex-col items-center overflow-y-auto">
+            <h2 class="text-3xl font-bold text-serenity mb-2">挑戰完成！</h2>
+            <div class="text-6xl mb-4">🎉</div>
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-rose-100 w-full max-w-2xl mb-6">
+                <div class="flex justify-between items-center mb-4 border-b border-gray-100 pb-4">
+                    <span class="text-gray-500 font-bold text-lg">答對率</span>
+                    <span class="text-3xl font-bold" :class="scoreColor">{{ scorePercentage }}%</span>
+                </div>
+                <div class="bg-blue-50 p-4 rounded-xl">
+                    <h3 class="font-bold text-serenity mb-2"><i class="fas fa-robot mr-2"></i>AI 小老師的建議</h3>
+                    <!-- AI Suggestion Display -->
+                    <div class="space-y-3 text-sm text-gray-700">
+                        <p v-if="aiFeedback.mastered.length > 0">
+                            <i class="fas fa-check-circle text-green-500 mr-1"></i>
+                            你的 <strong>{{ aiFeedback.mastered.join('、') }}</strong> 的乘法已經很熟悉了！<br>
+                            <span class="text-gray-500 text-xs ml-5">建議：嘗試心算，挑戰更快的速度。</span>
+                        </p>
+                        <p v-if="aiFeedback.intermediate.length > 0">
+                            <i class="fas fa-exclamation-circle text-yellow-500 mr-1"></i>
+                            但 <strong>{{ aiFeedback.intermediate.join('、') }}</strong> 的乘法還有部分不熟練。<br>
+                            <span class="text-gray-500 text-xs ml-5">建議：多練習幾次，可以邊唸口訣邊寫。</span>
+                        </p>
+                        <p v-if="aiFeedback.unfamiliar.length > 0">
+                            <i class="fas fa-times-circle text-red-500 mr-1"></i>
+                            <strong>{{ aiFeedback.unfamiliar.join('、') }}</strong> 的乘法有較多需要再練習。<br>
+                            <span class="text-gray-500 text-xs ml-5">建議：拿出積木排排看，或是找找生活中有沒有相關數量的物品。</span>
+                        </p>
+                        <p v-if="aiFeedback.mastered.length === 0 && aiFeedback.intermediate.length === 0 && aiFeedback.unfamiliar.length === 0">
+                            恭喜完成！繼續保持練習喔！
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-2xl shrink-0">
+                <button @click="currentView = 'home'" class="btn-primary py-3 rounded-xl font-bold">
+                    <i class="fas fa-home mr-2"></i> 回到首頁
+                </button>
+                <button v-if="wrongQuestions.length > 0" @click="retryWrong" class="btn-secondary py-3 rounded-xl font-bold bg-white">
+                    <i class="fas fa-redo mr-2"></i> 錯誤題目再試一次
+                </button>
+                <button @click="exportResultTxt" class="md:col-span-2 bg-gray-100 text-gray-600 py-3 rounded-xl font-bold hover:bg-gray-200 transition-colors">
+                    <i class="fas fa-file-export mr-2"></i> 匯出作答紀錄 (TXT)
+                </button>
+            </div>
+        </div>
+
+        <!-- ADMIN VIEWS (Login/Dashboard) -->
+        <div v-if="currentView === 'adminLogin'" class="p-8 flex-1 flex flex-col items-center justify-center">
+            <div class="bg-white p-8 rounded-3xl shadow-lg border border-gray-100 w-full max-w-sm text-center">
+                <div class="w-16 h-16 bg-rose-100 rounded-full flex items-center justify-center mx-auto mb-4 text-rose-500 text-2xl"><i class="fas fa-lock"></i></div>
+                <h2 class="text-xl font-bold text-gray-700 mb-6">後台管理登入</h2>
+                <input type="password" v-model="adminInputPass" placeholder="請輸入密碼" class="w-full p-3 rounded-xl border border-gray-300 mb-4 text-center focus:border-serenity outline-none">
+                <div class="flex gap-2">
+                    <button @click="currentView = 'home'" class="flex-1 py-2 rounded-xl border border-gray-300 text-gray-500">取消</button>
+                    <button @click="checkAdminPass" class="flex-1 py-2 rounded-xl bg-serenity text-white font-bold">登入</button>
+                </div>
+                <p v-if="loginMsg" class="text-red-400 text-sm mt-3">{{ loginMsg }}</p>
+            </div>
+        </div>
+
+        <div v-if="currentView === 'adminDashboard'" class="flex-1 flex flex-col h-full bg-gray-50 overflow-hidden rounded-b-3xl">
+            <!-- Sidebar & Tabs -->
+            <div class="bg-white border-b border-gray-200 p-4 flex justify-between items-center shrink-0">
+                <h2 class="font-bold text-lg text-gray-700"><i class="fas fa-chart-pie text-serenity mr-2"></i>教師後台</h2>
+                <button @click="currentView = 'home'" class="text-sm text-gray-500 hover:text-serenity"><i class="fas fa-sign-out-alt mr-1"></i> 離開</button>
+            </div>
+            <div class="flex-1 flex overflow-hidden">
+                <div class="w-40 bg-white border-r border-gray-200 flex flex-col p-4 space-y-2 hidden md:flex shrink-0">
+                    <button @click="adminTab = 'records'" :class="{'bg-rose-50 text-rose-500 font-bold': adminTab === 'records'}" class="text-left p-3 rounded-xl text-gray-600 hover:bg-gray-50 transition-colors">學生紀錄</button>
+                    <button @click="adminTab = 'worksheet'" :class="{'bg-rose-50 text-rose-500 font-bold': adminTab === 'worksheet'}" class="text-left p-3 rounded-xl text-gray-600 hover:bg-gray-50 transition-colors">製作學習單</button>
+                    <button @click="adminTab = 'criteria'" :class="{'bg-rose-50 text-rose-500 font-bold': adminTab === 'criteria'}" class="text-left p-3 rounded-xl text-gray-600 hover:bg-gray-50 transition-colors">精熟秒數設定</button>
+                    <button @click="adminTab = 'password'" :class="{'bg-rose-50 text-rose-500 font-bold': adminTab === 'password'}" class="text-left p-3 rounded-xl text-gray-600 hover:bg-gray-50 transition-colors">密碼設定</button>
+                </div>
+                <div class="flex-1 p-4 md:p-6 overflow-y-auto">
+                    <!-- Mobile Tabs -->
+                    <div class="flex md:hidden mb-4 space-x-2 overflow-x-auto pb-2 scrollbar-hide">
+                        <button @click="adminTab = 'records'" class="px-4 py-2 rounded-full whitespace-nowrap text-sm" :class="adminTab === 'records' ? 'bg-serenity text-white' : 'bg-white border'">紀錄</button>
+                        <button @click="adminTab = 'worksheet'" class="px-4 py-2 rounded-full whitespace-nowrap text-sm" :class="adminTab === 'worksheet' ? 'bg-serenity text-white' : 'bg-white border'">學習單</button>
+                        <button @click="adminTab = 'criteria'" class="px-4 py-2 rounded-full whitespace-nowrap text-sm" :class="adminTab === 'criteria' ? 'bg-serenity text-white' : 'bg-white border'">精熟秒數</button>
+                        <button @click="adminTab = 'password'" class="px-4 py-2 rounded-full whitespace-nowrap text-sm" :class="adminTab === 'password' ? 'bg-serenity text-white' : 'bg-white border'">密碼</button>
+                    </div>
+
+                    <!-- Record List -->
+                    <div v-if="adminTab === 'records'">
+                        <div class="flex flex-wrap gap-2 justify-between items-center mb-4">
+                            <h3 class="font-bold text-xl">作答紀錄列表</h3>
+                            <div class="space-x-2">
+                                <button @click="exportAllRecords('txt')" class="text-sm bg-white border border-gray-300 px-3 py-1 rounded shadow-sm hover:bg-gray-50">匯出 TXT</button>
+                                <button @click="exportAllRecords('csv')" class="text-sm bg-green-50 text-green-700 border border-green-200 px-3 py-1 rounded shadow-sm hover:bg-green-100"><i class="fas fa-file-excel mr-1"></i>匯出 Excel(CSV)</button>
+                            </div>
+                        </div>
+                        <div v-if="studentRecords.length === 0" class="text-center py-10 text-gray-400">目前沒有作答資料</div>
+                        <div class="space-y-3">
+                            <div v-for="(rec, index) in studentRecords" :key="index" class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                                <div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="font-bold text-lg text-gray-800">{{ rec.name }}</span>
+                                        <span v-if="rec.grade" class="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{{ rec.grade }}年級</span>
+                                        <span class="text-xs text-gray-400">{{ rec.timestamp }}</span>
+                                    </div>
+                                    <div class="text-sm text-gray-500 mt-1">
+                                        範圍: {{ rec.range }} | 題數: {{ rec.total }} | <span :class="rec.score >= 80 ? 'text-green-500' : 'text-red-400'">正確率: {{ rec.score }}%</span>
+                                    </div>
+                                </div>
+                                <div class="flex gap-2 w-full md:w-auto">
+                                    <button @click="viewRecordDetail(rec)" class="flex-1 md:flex-none px-4 py-2 bg-blue-50 text-blue-500 rounded-lg hover:bg-blue-100 text-sm">詳細</button>
+                                    <button @click="deleteRecord(index)" class="px-3 py-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-100"><i class="fas fa-trash"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Worksheet Generator -->
+                    <div v-if="adminTab === 'worksheet'">
+                        <h3 class="font-bold text-xl mb-4">學習單產生器</h3>
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                            <!-- Settings -->
+                            <div class="mb-4">
+                                <label class="block text-sm font-bold text-gray-600 mb-2">數字範圍</label>
+                                <div class="flex flex-wrap gap-2">
+                                    <label v-for="n in 10" :key="'w'+n" class="inline-flex items-center bg-gray-50 px-3 py-1 rounded border cursor-pointer hover:bg-gray-100">
+                                        <input type="checkbox" :value="n" v-model="worksheetSettings.multipliers" class="mr-2 text-serenity">
+                                        {{ n }}
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4 mb-4">
+                                <div>
+                                    <label class="block text-sm font-bold text-gray-600 mb-1">題數</label>
+                                    <input type="number" v-model="worksheetSettings.count" class="w-full border rounded p-2" min="1" max="100">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-bold text-gray-600 mb-1">類型</label>
+                                    <select v-model="worksheetSettings.type" class="w-full border rounded p-2">
+                                        <option value="number">純數字</option>
+                                        <option value="block">古氏積木</option>
+                                    </select>
+                                </div>
+                            </div>
+                             <div class="mb-6">
+                                <label class="block text-sm font-bold text-gray-600 mb-1">作答欄位</label>
+                                <select v-model="worksheetSettings.mode" class="w-full border rounded p-2">
+                                    <option value="simple">填寫答案 ( ___ )</option>
+                                    <option value="full">建構算式 ( __ x __ = __ )</option>
+                                </select>
+                            </div>
+                            <button @click="previewWorksheet" class="w-full bg-serenity text-white font-bold py-3 rounded-xl hover:bg-blue-400"><i class="fas fa-eye mr-2"></i> 預覽學習單</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Criteria Settings -->
+                    <div v-if="adminTab === 'criteria'">
+                        <h3 class="font-bold text-xl mb-4">精熟秒數設定 (秒)</h3>
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 space-y-6">
+                            
+                            <!-- Explanation Block -->
+                            <div class="bg-yellow-50 p-4 rounded border border-yellow-200 text-sm text-gray-700">
+                                <p class="font-bold mb-2 text-base"><i class="fas fa-info-circle mr-1"></i> 設定說明：</p>
+                                <ul class="list-disc pl-5 space-y-1 mb-2">
+                                    <li>設定學生答題時間低於多少秒視為「精熟」或「中等」，超過則視為「不熟」。</li>
+                                    <li>僅在「答對」時計算秒數。</li>
+                                </ul>
+                                <p class="text-xs text-gray-500 bg-white p-2 rounded border border-yellow-100">
+                                    <strong>範例：</strong>在「填寫答案」模式中，若精熟秒數設定為 <strong>5</strong>，代表學生在 <strong>5 秒內</strong> 輸入完答案並按下送出，即判定為「精熟」。
+                                </p>
+                            </div>
+                            
+                            <!-- Low Grade -->
+                            <div class="bg-rose-50/50 p-4 rounded-xl border border-rose-100">
+                                <div class="flex flex-col md:flex-row md:items-end justify-between mb-4 border-b border-rose-200 pb-2">
+                                    <div class="flex items-center mb-2 md:mb-0">
+                                        <span class="text-xl mr-2">🌱</span>
+                                        <h4 class="font-bold text-gray-700 mr-2">低年級 (1-2年級)</h4>
+                                    </div>
+                                    <div class="text-xs text-gray-500 text-right">
+                                        <div class="font-bold text-rose-400 mb-0.5">參考建議(平板/觸控)</div>
+                                        填寫: 精熟 <8s / 中等 <15s &nbsp;|&nbsp; 建構: 精熟 <20s / 中等 <30s
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-0 md:gap-0">
+                                    <div class="md:border-r md:border-rose-200 md:pr-6 pb-4 md:pb-0">
+                                        <h5 class="text-sm font-bold text-serenity mb-2 text-center md:text-left">填寫答案 ( ___ )</h5>
+                                        <div class="flex justify-center md:justify-start gap-4 text-sm items-center mb-2">
+                                            <div class="flex items-center gap-2"><label class="text-gray-500">精熟</label><input type="number" v-model.number="proficiencySettings.low.simple.mastered" class="w-16 border rounded p-1 text-center bg-white focus:border-rose-300 outline-none"></div>
+                                            <div class="flex items-center gap-2"><label class="text-gray-500">中等</label><input type="number" v-model.number="proficiencySettings.low.simple.intermediate" class="w-16 border rounded p-1 text-center bg-white focus:border-rose-300 outline-none"></div>
+                                        </div>
+                                    </div>
+                                    <div class="md:pl-6 pt-4 md:pt-0 border-t md:border-t-0 border-rose-200">
+                                        <h5 class="text-sm font-bold text-serenity mb-2 text-center md:text-left">建構算式 ( _ x _ = _ )</h5>
+                                        <div class="flex justify-center md:justify-start gap-4 text-sm items-center">
+                                            <div class="flex items-center gap-2"><label class="text-gray-500">精熟</label><input type="number" v-model.number="proficiencySettings.low.full.mastered" class="w-16 border rounded p-1 text-center bg-white focus:border-rose-300 outline-none"></div>
+                                            <div class="flex items-center gap-2"><label class="text-gray-500">中等</label><input type="number" v-model.number="proficiencySettings.low.full.intermediate" class="w-16 border rounded p-1 text-center bg-white focus:border-rose-300 outline-none"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Mid Grade -->
+                            <div class="bg-blue-50/50 p-4 rounded-xl border border-blue-100">
+                                <div class="flex flex-col md:flex-row md:items-end justify-between mb-4 border-b border-blue-200 pb-2">
+                                    <div class="flex items-center mb-2 md:mb-0">
+                                        <span class="text-xl mr-2">🌿</span>
+                                        <h4 class="font-bold text-gray-700 mr-2">中年級 (3-4年級)</h4>
+                                    </div>
+                                    <div class="text-xs text-gray-500 text-right">
+                                        <div class="font-bold text-blue-400 mb-0.5">參考建議(平板/觸控)</div>
+                                        填寫: 精熟 <6s / 中等 <12s &nbsp;|&nbsp; 建構: 精熟 <15s / 中等 <25s
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-0 md:gap-0">
+                                    <div class="md:border-r md:border-blue-200 md:pr-6 pb-4 md:pb-0">
+                                        <h5 class="text-sm font-bold text-serenity mb-2 text-center md:text-left">填寫答案 ( ___ )</h5>
+                                        <div class="flex justify-center md:justify-start gap-4 text-sm items-center mb-2">
+                                            <div class="flex items-center gap-2"><label class="text-gray-500">精熟</label><input type="number" v-model.number="proficiencySettings.mid.simple.mastered" class="w-16 border rounded p-1 text-center bg-white focus:border-blue-300 outline-none"></div>
+                                            <div class="flex items-center gap-2"><label class="text-gray-500">中等</label><input type="number" v-model.number="proficiencySettings.mid.simple.intermediate" class="w-16 border rounded p-1 text-center bg-white focus:border-blue-300 outline-none"></div>
+                                        </div>
+                                    </div>
+                                    <div class="md:pl-6 pt-4 md:pt-0 border-t md:border-t-0 border-blue-200">
+                                        <h5 class="text-sm font-bold text-serenity mb-2 text-center md:text-left">建構算式 ( _ x _ = _ )</h5>
+                                        <div class="flex justify-center md:justify-start gap-4 text-sm items-center">
+                                            <div class="flex items-center gap-2"><label class="text-gray-500">精熟</label><input type="number" v-model.number="proficiencySettings.mid.full.mastered" class="w-16 border rounded p-1 text-center bg-white focus:border-blue-300 outline-none"></div>
+                                            <div class="flex items-center gap-2"><label class="text-gray-500">中等</label><input type="number" v-model.number="proficiencySettings.mid.full.intermediate" class="w-16 border rounded p-1 text-center bg-white focus:border-blue-300 outline-none"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                             <!-- High Grade -->
+                             <div class="bg-purple-50/50 p-4 rounded-xl border border-purple-100">
+                                <div class="flex flex-col md:flex-row md:items-end justify-between mb-4 border-b border-purple-200 pb-2">
+                                    <div class="flex items-center mb-2 md:mb-0">
+                                        <span class="text-xl mr-2">🌳</span>
+                                        <h4 class="font-bold text-gray-700 mr-2">高年級 (5-6年級)</h4>
+                                    </div>
+                                    <div class="text-xs text-gray-500 text-right">
+                                        <div class="font-bold text-purple-400 mb-0.5">參考建議(平板/觸控)</div>
+                                        填寫: 精熟 <4s / 中等 <8s &nbsp;|&nbsp; 建構: 精熟 <12s / 中等 <20s
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-0 md:gap-0">
+                                    <div class="md:border-r md:border-purple-200 md:pr-6 pb-4 md:pb-0">
+                                        <h5 class="text-sm font-bold text-serenity mb-2 text-center md:text-left">填寫答案 ( ___ )</h5>
+                                        <div class="flex justify-center md:justify-start gap-4 text-sm items-center mb-2">
+                                            <div class="flex items-center gap-2"><label class="text-gray-500">精熟</label><input type="number" v-model.number="proficiencySettings.high.simple.mastered" class="w-16 border rounded p-1 text-center bg-white focus:border-purple-300 outline-none"></div>
+                                            <div class="flex items-center gap-2"><label class="text-gray-500">中等</label><input type="number" v-model.number="proficiencySettings.high.simple.intermediate" class="w-16 border rounded p-1 text-center bg-white focus:border-purple-300 outline-none"></div>
+                                        </div>
+                                    </div>
+                                    <div class="md:pl-6 pt-4 md:pt-0 border-t md:border-t-0 border-purple-200">
+                                        <h5 class="text-sm font-bold text-serenity mb-2 text-center md:text-left">建構算式 ( _ x _ = _ )</h5>
+                                        <div class="flex justify-center md:justify-start gap-4 text-sm items-center">
+                                            <div class="flex items-center gap-2"><label class="text-gray-500">精熟</label><input type="number" v-model.number="proficiencySettings.high.full.mastered" class="w-16 border rounded p-1 text-center bg-white focus:border-purple-300 outline-none"></div>
+                                            <div class="flex items-center gap-2"><label class="text-gray-500">中等</label><input type="number" v-model.number="proficiencySettings.high.full.intermediate" class="w-16 border rounded p-1 text-center bg-white focus:border-purple-300 outline-none"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button @click="saveProficiencySettings" class="w-full bg-serenity text-white py-3 px-4 rounded-xl font-bold hover:bg-blue-400 transition-colors shadow-sm"><i class="fas fa-save mr-2"></i> 儲存設定</button>
+                        </div>
+                    </div>
+
+                    <!-- Password -->
+                    <div v-if="adminTab === 'password'">
+                         <h3 class="font-bold text-xl mb-4">密碼設定</h3>
+                         <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 max-w-md">
+                            <div class="mb-4">
+                                <label class="block text-sm text-gray-500 mb-1">目前密碼</label>
+                                <div class="flex items-center gap-2">
+                                    <input :type="showPass ? 'text' : 'password'" :value="currentPassword" readonly class="flex-1 bg-gray-50 border rounded p-2 text-gray-600">
+                                    <button @click="showPass = !showPass" class="text-gray-400 hover:text-serenity"><i class="fas" :class="showPass ? 'fa-eye-slash' : 'fa-eye'"></i></button>
+                                </div>
+                            </div>
+                            <div class="mb-6">
+                                <label class="block text-sm text-gray-500 mb-1">新密碼</label>
+                                <input type="text" v-model="newPassword" class="w-full border rounded p-2 focus:border-serenity outline-none" placeholder="輸入新密碼">
+                            </div>
+                            <div class="flex gap-2">
+                                <button @click="updatePassword" class="flex-1 bg-serenity text-white py-2 rounded-lg font-bold">修改密碼</button>
+                                <button @click="resetPassword" class="flex-1 border border-red-200 text-red-400 py-2 rounded-lg hover:bg-red-50">恢復預設</button>
+                            </div>
+                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detail Modal -->
+            <div v-if="showDetailModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                <div class="bg-white rounded-2xl w-full max-w-lg max-h-[80vh] flex flex-col shadow-2xl overflow-hidden">
+                    <div class="p-4 border-b flex justify-between items-center bg-rose-50">
+                        <h3 class="font-bold text-lg text-gray-700">詳細作答情形</h3>
+                        <button @click="showDetailModal = false" class="text-gray-400 hover:text-red-400"><i class="fas fa-times text-xl"></i></button>
+                    </div>
+                    <div class="p-6 overflow-y-auto">
+                        <div class="mb-4 bg-gray-50 p-3 rounded-lg text-sm space-y-2">
+                            <div class="flex justify-between">
+                                <p><strong>學生：</strong>{{ selectedRecord.name }} <span class="text-gray-500 text-xs">({{ selectedRecord.grade || '未紀錄' }}年級)</span></p>
+                                <p class="text-gray-400 text-xs">{{ selectedRecord.timestamp }}</p>
+                            </div>
+                            <!-- Display Snapshot Settings -->
+                            <div v-if="selectedRecord.settingsSnapshot" class="text-xs text-gray-500 bg-white p-2 rounded border border-gray-200">
+                                <strong>當時精熟標準 ({{ selectedRecord.grade }}年級)：</strong><br>
+                                填寫答案: 精熟 <{{ selectedRecord.settingsSnapshot.simple.mastered }}s, 中等 <{{ selectedRecord.settingsSnapshot.simple.intermediate }}s<br>
+                                建構算式: 精熟 <{{ selectedRecord.settingsSnapshot.full.mastered }}s, 中等 <{{ selectedRecord.settingsSnapshot.full.intermediate }}s
+                            </div>
+                            <p class="mt-2 text-gray-600 border-t border-gray-200 pt-2"><strong>AI 建議摘要：</strong><br>
+                                <span v-if="selectedRecord.aiFeedbackText">{{ selectedRecord.aiFeedbackText }}</span>
+                                <span v-else>無建議</span>
+                            </p>
+                        </div>
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr class="border-b text-gray-500">
+                                    <th class="text-left py-2">題目</th>
+                                    <th class="text-center">學生答案</th>
+                                    <th class="text-center">精熟度(作答秒數)</th>
+                                    <th class="text-right">結果</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="(d, i) in selectedRecord.details" :key="i" class="border-b border-gray-50">
+                                    <td class="py-2">{{ d.q }}</td>
+                                    <td class="text-center font-mono text-gray-600">{{ d.userAns }}</td>
+                                    <td class="text-center">
+                                        <span v-if="d.proficiency === 'mastered'" class="text-green-500 text-xs px-2 py-0.5 bg-green-50 rounded-full">精熟 ({{ d.time }})</span>
+                                        <span v-else-if="d.proficiency === 'intermediate'" class="text-yellow-600 text-xs px-2 py-0.5 bg-yellow-50 rounded-full">中等 ({{ d.time }})</span>
+                                        <span v-else class="text-red-500 text-xs px-2 py-0.5 bg-red-50 rounded-full">不熟 ({{ d.time }})</span>
+                                    </td>
+                                    <td class="text-right"><i v-if="d.correct" class="fas fa-check text-green-400"></i><i v-else class="fas fa-times text-red-400"></i></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="p-4 border-t flex flex-col gap-3">
+                         <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-2">產生加強練習單：</label>
+                            <div class="grid grid-cols-3 gap-2">
+                                <button @click="generateRemedialWorksheet(selectedRecord, 'intermediate')" class="bg-yellow-100 text-yellow-700 py-2 rounded-lg text-sm font-bold hover:bg-yellow-200 border border-yellow-200">
+                                    <i class="fas fa-exclamation-circle mr-1"></i> 僅中等
+                                </button>
+                                <button @click="generateRemedialWorksheet(selectedRecord, 'unfamiliar')" class="bg-red-100 text-red-600 py-2 rounded-lg text-sm font-bold hover:bg-red-200 border border-red-200">
+                                    <i class="fas fa-times-circle mr-1"></i> 僅不熟
+                                </button>
+                                <button @click="generateRemedialWorksheet(selectedRecord, 'both')" class="bg-orange-100 text-orange-600 py-2 rounded-lg text-sm font-bold hover:bg-orange-200 border border-orange-200">
+                                    <i class="fas fa-layer-group mr-1"></i> 全部 (中+不)
+                                </button>
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button @click="exportSingleRecord(selectedRecord, 'txt')" class="flex-1 bg-serenity text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-400 mt-1">
+                                <i class="fas fa-file-export mr-2"></i> 匯出 TXT
+                            </button>
+                             <button @click="exportSingleRecord(selectedRecord, 'csv')" class="flex-1 bg-green-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-600 mt-1">
+                                <i class="fas fa-file-excel mr-2"></i> 匯出 Excel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- VIEW: WORKSHEET PREVIEW (Paginated) -->
+    <div v-if="currentView === 'worksheetPreview'" class="w-full h-full flex flex-col items-center bg-gray-100 overflow-y-auto pt-4 print-container">
+        <!-- Toolbar -->
+        <div class="w-full max-w-[210mm] flex justify-between items-center mb-4 px-4 no-print shrink-0">
+            <button @click="currentView = 'adminDashboard'" class="bg-gray-500 text-white px-4 py-2 rounded-lg shadow hover:bg-gray-600"><i class="fas fa-arrow-left mr-2"></i> 返回後台</button>
+            <div class="text-gray-600 font-bold">{{ worksheetTitle }}</div>
+            <button @click="printCurrentView" class="bg-serenity text-white px-4 py-2 rounded-lg shadow hover:bg-blue-400 font-bold"><i class="fas fa-print mr-2"></i> 列印 / 另存 PDF</button>
+        </div>
+
+        <!-- Render Paginated Pages -->
+        <div v-for="(pageQuestions, pIdx) in paginatedQuestions" :key="pIdx" class="worksheet-page">
+            
+            <div class="text-center border-b-2 border-black pb-2 mb-4">
+                <h1 class="text-3xl font-bold mb-2">{{ worksheetTitle }}</h1>
+                <div class="flex flex-row justify-between items-center text-lg mt-2 px-4 whitespace-nowrap">
+                    <span>姓名：____________________</span>
+                    <span>日期：____________________</span>
+                    <span>分數：____________________</span>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-x-8 gap-y-6">
+                <div v-for="(q, idx) in pageQuestions" :key="idx" class="break-inside-avoid mb-2 border border-gray-300 rounded-xl p-3">
+                    <div class="text-lg font-bold mb-2 bg-gray-100 inline-block px-2 rounded">第 {{ (pIdx * 6) + idx + 1 }} 題</div>
+                    
+                    <!-- Content -->
+                    <div class="min-h-[100px] flex items-center justify-center mb-2">
+                        <!-- Number Type -->
+                        <div v-if="worksheetSettings.type === 'number'" class="text-5xl font-mono">{{ q.multiplier }} × {{ q.count }}</div>
+                        
+                        <!-- Rod Type (Vertical Standing) -->
+                        <div v-if="worksheetSettings.type === 'block'" class="flex flex-row items-end justify-center gap-1">
+                            <div v-for="r in q.count" :key="r" class="flex flex-col items-center">
+                                 <div :class="['rod-base-print', getRodClass(q.multiplier)]" 
+                                      :style="{ width: '16px', height: (q.multiplier * 16) + 'px' }">
+                                 </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Answer Area (Square Boxes) -->
+                    <div class="border-t-2 border-dashed border-gray-300 pt-3 flex justify-center items-center text-xl">
+                        <div v-if="worksheetSettings.mode === 'simple'" class="flex items-center gap-2">
+                             <span>{{ q.multiplier }} × {{ q.count }} = </span>
+                             <div class="print-input-box"></div>
+                        </div>
+                        <div v-else class="flex items-center gap-1">
+                             <div class="print-input-box"></div>
+                             <span class="mx-1">×</span>
+                             <div class="print-input-box"></div>
+                             <span class="mx-1">=</span>
+                             <div class="print-input-box"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="absolute bottom-4 right-4 text-xs text-gray-400">
+                第 {{ pIdx + 1 }} 頁 / 共 {{ paginatedQuestions.length }} 頁 - 十十乘法挑戰賽
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    const { createApp, ref, computed, onMounted, reactive, watch, nextTick } = Vue;
+
+    createApp({
+        setup() {
+            const currentView = ref('home');
+            const studentName = ref('');
+            const studentGrade = ref(''); // Added Grade Selection
+            const isMobile = ref(window.innerWidth < 768);
+            
+            const settings = reactive({
+                multipliers: [2],
+                questionCount: 10,
+                cardType: 'block',
+                answerMode: 'full'
+            });
+            
+            // Proficiency Settings (Updated Logic: Tiered)
+            const defaultProficiency = {
+                low: { simple: { mastered: 8, intermediate: 15 }, full: { mastered: 20, intermediate: 30 } },
+                mid: { simple: { mastered: 6, intermediate: 12 }, full: { mastered: 15, intermediate: 25 } },
+                high: { simple: { mastered: 4, intermediate: 8 }, full: { mastered: 12, intermediate: 20 } }
+            };
+
+            // Load or Init settings (Migration Logic included)
+            let storedProf = JSON.parse(localStorage.getItem('proficiencySettings'));
+            if (!storedProf || !storedProf.low) { // If missing or old format
+                storedProf = defaultProficiency;
+                localStorage.setItem('proficiencySettings', JSON.stringify(storedProf));
+            }
+            const proficiencySettings = reactive(storedProf);
+
+            const quizQuestions = ref([]);
+            const currentQuestionIndex = ref(0);
+            const userInputs = reactive({ a: '', b: '', ans: '' });
+            const quizResults = ref([]);
+            const questionStartTime = ref(0);
+            const rodsContainer = ref(null);
+            const containerHeight = ref(400); 
+
+            // Admin vars
+            const adminInputPass = ref('');
+            const currentPassword = ref(localStorage.getItem('adminPass') || '0000');
+            const loginMsg = ref('');
+            const adminTab = ref('records');
+            const studentRecords = ref(JSON.parse(localStorage.getItem('studentRecords') || '[]'));
+            const showDetailModal = ref(false);
+            const selectedRecord = ref({});
+            const showPass = ref(false);
+            const newPassword = ref('');
+            
+            // Worksheet vars
+            const worksheetSettings = reactive({
+                multipliers: [1,2,3,4,5],
+                count: 6,
+                type: 'block',
+                mode: 'simple'
+            });
+            const worksheetQuestions = ref([]);
+            const worksheetTitle = ref('');
+
+            // Pagination for worksheet
+            const paginatedQuestions = computed(() => {
+                const pages = [];
+                const items = worksheetQuestions.value;
+                for (let i = 0; i < items.length; i += 6) {
+                    pages.push(items.slice(i, i + 6));
+                }
+                return pages;
+            });
+
+            onMounted(() => {
+                window.addEventListener('resize', () => { isMobile.value = window.innerWidth < 768; });
+                const resizeObserver = new ResizeObserver(entries => {
+                    for (let entry of entries) {
+                        containerHeight.value = entry.contentRect.height;
+                    }
+                });
+                watch(currentView, (newVal) => {
+                    if (newVal === 'quiz') {
+                        nextTick(() => { if(rodsContainer.value) resizeObserver.observe(rodsContainer.value); });
+                    } else {
+                        resizeObserver.disconnect();
+                    }
+                });
+            });
+
+            const currentQuestion = computed(() => {
+                if (quizQuestions.value.length === 0) return { multiplier: 0, count: 0 };
+                return quizQuestions.value[currentQuestionIndex.value];
+            });
+
+            const progressPercent = computed(() => {
+                if (quizQuestions.value.length === 0) return 0;
+                return ((currentQuestionIndex.value) / quizQuestions.value.length) * 100;
+            });
+
+            const scorePercentage = computed(() => {
+                const correct = quizResults.value.filter(r => r.correct).length;
+                return Math.round((correct / quizResults.value.length) * 100) || 0;
+            });
+
+            const scoreColor = computed(() => {
+                if (scorePercentage.value >= 90) return 'text-green-500';
+                if (scorePercentage.value >= 60) return 'text-blue-500';
+                return 'text-red-400';
+            });
+
+            const wrongQuestions = computed(() => quizResults.value.filter(r => !r.correct));
+
+            const aiFeedback = computed(() => {
+                const groups = { mastered: [], intermediate: [], unfamiliar: [] };
+                const multiplierStats = {}; 
+
+                quizResults.value.forEach(r => {
+                    const m = r.details.multiplier;
+                    if(!multiplierStats[m]) multiplierStats[m] = [];
+                    
+                    if(r.proficiency === 'mastered') multiplierStats[m].push(3);
+                    else if(r.proficiency === 'intermediate') multiplierStats[m].push(2);
+                    else multiplierStats[m].push(1);
+                });
+
+                for (const [m, scores] of Object.entries(multiplierStats)) {
+                    const avg = scores.reduce((a,b)=>a+b,0) / scores.length;
+                    if(avg > 2.5) groups.mastered.push(m);
+                    else if(avg > 1.5) groups.intermediate.push(m);
+                    else groups.unfamiliar.push(m);
+                }
+                return groups;
+            });
+
+            const selectAllMultipliers = () => { settings.multipliers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]; };
+            const goToStudentName = () => { currentView.value = 'studentName'; };
+
+            // Helper to determine grade group
+            const getGradeGroup = (g) => {
+                const grade = parseInt(g);
+                if (grade <= 2) return 'low';
+                if (grade <= 4) return 'mid';
+                return 'high';
+            };
+
+            // 3. New Fair Distribution Logic
+            const generateQuestionPool = (multipliers, totalCount, isRetry = false, retryPool = []) => {
+                let pool = [];
+                if (isRetry && retryPool.length > 0) {
+                    return retryPool.map(q => ({ multiplier: q.details.multiplier, count: q.details.count }));
+                }
+
+                if (!multipliers || multipliers.length === 0) multipliers = [2];
+                const safeCount = Math.max(totalCount || 10, 1);
+                const numMultipliers = multipliers.length;
+                
+                // Calculate base questions per multiplier
+                const basePerMul = Math.floor(safeCount / numMultipliers);
+                let remainder = safeCount % numMultipliers;
+
+                // For each selected number, generate 'basePerMul' questions
+                multipliers.forEach(m => {
+                    // Generate full set 1-10 for this multiplier
+                    let candidates = Array.from({length: 10}, (_, i) => ({ multiplier: Number(m), count: i + 1 }));
+                    
+                    // Shuffle candidates
+                    for (let i = candidates.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
+                    }
+
+                    // Pick required amount. If more needed than 10, repeat.
+                    let picks = [];
+                    while(picks.length < basePerMul) {
+                        picks = picks.concat(candidates);
+                    }
+                    pool = pool.concat(picks.slice(0, basePerMul));
+                });
+
+                // Handle remainder: randomly pick from selected multipliers
+                if (remainder > 0) {
+                    // Create a pool of all possible combinations for selected multipliers
+                    let remainderPool = [];
+                    multipliers.forEach(m => {
+                         // Just add random ones
+                         remainderPool.push({ multiplier: Number(m), count: Math.floor(Math.random() * 10) + 1 });
+                    });
+                    // Shuffle and take remainder
+                    for (let i = remainderPool.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [remainderPool[i], remainderPool[j]] = [remainderPool[j], remainderPool[i]];
+                    }
+                    pool = pool.concat(remainderPool.slice(0, remainder));
+                }
+
+                // Final Shuffle of the whole pool
+                for (let i = pool.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [pool[i], pool[j]] = [pool[j], pool[i]];
+                }
+                
+                return pool.slice(0, safeCount);
+            };
+
+            const startQuiz = (isRetry = false) => {
+                if (isRetry) {
+                    const retrySource = wrongQuestions.value;
+                    quizQuestions.value = generateQuestionPool([], 0, true, retrySource);
+                } else {
+                    quizQuestions.value = generateQuestionPool(settings.multipliers, settings.questionCount);
+                }
+                currentQuestionIndex.value = 0;
+                quizResults.value = [];
+                resetInputs();
+                currentView.value = 'quiz';
+                nextTick(() => { questionStartTime.value = Date.now(); });
+            };
+
+            const resetInputs = () => { userInputs.a = ''; userInputs.b = ''; userInputs.ans = ''; };
+
+            const submitAnswer = () => {
+                const q = currentQuestion.value;
+                const endTime = Date.now();
+                const duration = (endTime - questionStartTime.value) / 1000; 
+
+                if(q.multiplier === 0) { finishQuiz(); return; }
+
+                const correctAnswer = q.multiplier * q.count;
+                let isCorrect = false;
+                let userAnsDisplay = "";
+
+                if (settings.answerMode === 'simple') {
+                    isCorrect = parseInt(userInputs.ans) === correctAnswer;
+                    userAnsDisplay = `${userInputs.ans}`;
+                } else {
+                    const inputA = parseInt(userInputs.a);
+                    const inputB = parseInt(userInputs.b);
+                    const inputAns = parseInt(userInputs.ans);
+                    const logicCorrect = (inputA === q.multiplier && inputB === q.count) || (inputA === q.count && inputB === q.multiplier);
+                    isCorrect = logicCorrect && (inputAns === correctAnswer);
+                    userAnsDisplay = `${inputA} × ${inputB} = ${inputAns}`;
+                }
+
+                let proficiency = 'unfamiliar';
+                if (!isCorrect) {
+                    proficiency = 'unfamiliar';
+                } else {
+                    // Dynamic proficiency logic based on GRADE
+                    const gradeGroup = getGradeGroup(studentGrade.value || 1);
+                    const groupSettings = proficiencySettings[gradeGroup];
+                    const limits = settings.answerMode === 'simple' ? groupSettings.simple : groupSettings.full;
+                    
+                    if (duration < limits.mastered) {
+                        proficiency = 'mastered';
+                    } else if (duration <= limits.intermediate) {
+                        proficiency = 'intermediate';
+                    } else {
+                        proficiency = 'unfamiliar';
+                    }
+                }
+
+                quizResults.value.push({ 
+                    q: `${q.multiplier} × ${q.count}`, 
+                    correct: isCorrect, 
+                    userAns: userAnsDisplay, 
+                    details: q,
+                    proficiency: proficiency,
+                    time: duration.toFixed(1)
+                });
+                
+                if (currentQuestionIndex.value < quizQuestions.value.length - 1) {
+                    currentQuestionIndex.value++;
+                    resetInputs();
+                    nextTick(() => { questionStartTime.value = Date.now(); });
+                } else {
+                    finishQuiz();
+                }
+            };
+
+            const finishQuiz = () => {
+                const fb = aiFeedback.value;
+                let fbText = "";
+                if(fb.mastered.length > 0) fbText += `精熟: ${fb.mastered.join(',')}。`;
+                if(fb.intermediate.length > 0) fbText += `中等: ${fb.intermediate.join(',')}。`;
+                if(fb.unfamiliar.length > 0) fbText += `不熟: ${fb.unfamiliar.join(',')}。`;
+
+                // Capture snapshot of current settings for this grade
+                const gradeGroup = getGradeGroup(studentGrade.value || 1);
+                const settingsSnapshot = JSON.parse(JSON.stringify(proficiencySettings[gradeGroup]));
+
+                const record = {
+                    name: studentName.value,
+                    grade: studentGrade.value,
+                    timestamp: new Date().toLocaleString(),
+                    range: settings.multipliers.join(', '),
+                    total: quizQuestions.value.length,
+                    score: scorePercentage.value,
+                    details: quizResults.value,
+                    aiFeedbackText: fbText,
+                    settingsSnapshot: settingsSnapshot // Store threshold data
+                };
+                const records = JSON.parse(localStorage.getItem('studentRecords') || '[]');
+                records.unshift(record);
+                localStorage.setItem('studentRecords', JSON.stringify(records));
+                studentRecords.value = records;
+                currentView.value = 'result';
+            };
+
+            const retryWrong = () => { startQuiz(true); };
+            const checkAdminPass = () => {
+                if (adminInputPass.value === currentPassword.value) { currentView.value = 'adminDashboard'; adminInputPass.value = ''; loginMsg.value = ''; } 
+                else { loginMsg.value = '密碼錯誤'; }
+            };
+            const updatePassword = () => { if (newPassword.value) { currentPassword.value = newPassword.value; localStorage.setItem('adminPass', newPassword.value); alert('密碼已更新'); newPassword.value = ''; } };
+            const resetPassword = () => { if(confirm('確定恢復預設密碼 0000？')) { currentPassword.value = '0000'; localStorage.setItem('adminPass', '0000'); alert('已恢復'); } };
+            const deleteRecord = (index) => { if(confirm('確定刪除？')) { studentRecords.value.splice(index, 1); localStorage.setItem('studentRecords', JSON.stringify(studentRecords.value)); } };
+            const viewRecordDetail = (rec) => { selectedRecord.value = rec; showDetailModal.value = true; };
+            
+            // --- Export Functions ---
+            
+            const exportAllRecords = (format = 'txt') => {
+                if (format === 'csv') {
+                    exportAllRecordsCSV();
+                    return;
+                }
+                let content = "學生作答紀錄匯出\n-------------------------\n";
+                studentRecords.value.forEach(r => { 
+                    content += `姓名: ${r.name} (${r.grade || '?'}年級)\n時間: ${r.timestamp}\n分數: ${r.score}%\n題目範圍: ${r.range}\n建議: ${r.aiFeedbackText}\n`;
+                    if(r.settingsSnapshot) {
+                         content += `[當時標準] 簡單模式:精${r.settingsSnapshot.simple.mastered}/中${r.settingsSnapshot.simple.intermediate}, 完整模式:精${r.settingsSnapshot.full.mastered}/中${r.settingsSnapshot.full.intermediate}\n`;
+                    }
+                    content += `-------------------------\n`; 
+                });
+                downloadFile(content, "all_student_records.txt", 'text/plain');
+            };
+
+            const exportAllRecordsCSV = () => {
+                // BOM for Excel UTF-8
+                let csvContent = "\uFEFF";
+                // Header
+                csvContent += "姓名,年級,作答時間,分數(%),範圍,AI建議,簡單模式精熟(秒),簡單模式中等(秒),完整模式精熟(秒),完整模式中等(秒)\n";
+                
+                studentRecords.value.forEach(r => {
+                    let row = [];
+                    row.push(`"${r.name}"`);
+                    row.push(r.grade || "");
+                    row.push(`"${r.timestamp}"`);
+                    row.push(r.score);
+                    row.push(`"${r.range}"`);
+                    row.push(`"${r.aiFeedbackText.replace(/\n/g, ' ')}"`);
+                    
+                    if (r.settingsSnapshot) {
+                        row.push(r.settingsSnapshot.simple.mastered);
+                        row.push(r.settingsSnapshot.simple.intermediate);
+                        row.push(r.settingsSnapshot.full.mastered);
+                        row.push(r.settingsSnapshot.full.intermediate);
+                    } else {
+                         row.push("","","","");
+                    }
+                    csvContent += row.join(",") + "\n";
+                });
+                downloadFile(csvContent, "all_student_records.csv", 'text/csv;charset=utf-8;');
+            };
+            
+            const exportSingleRecord = (r, format = 'txt') => {
+                if (format === 'csv') {
+                    exportSingleRecordCSV(r);
+                    return;
+                }
+                 let content = `姓名: ${r.name}\n年級: ${r.grade || '未紀錄'}\n時間: ${r.timestamp}\n分數: ${r.score}%\nAI建議: ${r.aiFeedbackText}\n`;
+                 
+                 if(r.settingsSnapshot) {
+                     content += `\n[當時精熟標準]\n簡單模式: 精熟 < ${r.settingsSnapshot.simple.mastered}s, 中等 < ${r.settingsSnapshot.simple.intermediate}s\n`;
+                     content += `完整模式: 精熟 < ${r.settingsSnapshot.full.mastered}s, 中等 < ${r.settingsSnapshot.full.intermediate}s\n`;
+                 }
+
+                 content += `\n詳細答題列表:\n`;
+                 r.details.forEach(d => { 
+                     let profText = d.proficiency === 'mastered' ? '精熟' : (d.proficiency === 'intermediate' ? '中等' : '不熟');
+                     content += `${d.q} | 答: ${d.userAns} | ${d.correct ? 'O' : 'X'} | ${profText} (${d.time}s)\n`; 
+                 });
+                 downloadFile(content, `${r.name}_record.txt`, 'text/plain');
+            };
+
+            const exportSingleRecordCSV = (r) => {
+                 let csvContent = "\uFEFF";
+                 // Metadata part
+                 csvContent += `姓名,${r.name},年級,${r.grade || ''}\n`;
+                 csvContent += `時間,${r.timestamp},分數,${r.score}%\n`;
+                 
+                 if (r.settingsSnapshot) {
+                      csvContent += `簡單模式標準,精熟<${r.settingsSnapshot.simple.mastered}s,中等<${r.settingsSnapshot.simple.intermediate}s\n`;
+                      csvContent += `完整模式標準,精熟<${r.settingsSnapshot.full.mastered}s,中等<${r.settingsSnapshot.full.intermediate}s\n`;
+                 }
+                 csvContent += `AI建議,"${r.aiFeedbackText.replace(/\n/g, ' ')}"\n\n`;
+
+                 // Details table
+                 csvContent += "題目,學生答案,結果,精熟度,作答秒數\n";
+                 r.details.forEach(d => {
+                     let profText = d.proficiency === 'mastered' ? '精熟' : (d.proficiency === 'intermediate' ? '中等' : '不熟');
+                     let correctText = d.correct ? '正確' : '錯誤';
+                     csvContent += `"${d.q}","${d.userAns}",${correctText},${profText},${d.time}\n`;
+                 });
+                 
+                 downloadFile(csvContent, `${r.name}_record.csv`, 'text/csv;charset=utf-8;');
+            };
+            
+            const downloadFile = (content, filename, mimeType) => {
+                const blob = new Blob([content], { type: mimeType });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                a.click();
+                URL.revokeObjectURL(url);
+            };
+            
+            const generateRemedialWorksheet = (record, filterType = 'both') => {
+                let weakItems = [];
+                let typeName = "";
+
+                if (filterType === 'intermediate') {
+                    weakItems = record.details.filter(d => d.proficiency === 'intermediate');
+                    typeName = "僅中等";
+                } else if (filterType === 'unfamiliar') {
+                    weakItems = record.details.filter(d => d.proficiency === 'unfamiliar'); // 包含答錯或超時
+                    typeName = "僅不熟";
+                } else {
+                    // Both (Default)
+                    weakItems = record.details.filter(d => d.proficiency !== 'mastered');
+                    typeName = "加強";
+                }
+                
+                if(weakItems.length === 0) {
+                    alert(`該生在「${typeName}」類別中沒有題目！`);
+                    return;
+                }
+
+                worksheetQuestions.value = weakItems.map(item => ({
+                    multiplier: item.details.multiplier,
+                    count: item.details.count
+                }));
+
+                worksheetSettings.type = 'block'; 
+                worksheetSettings.mode = 'full'; // Force full mode for practice
+                worksheetTitle.value = `${typeName}練習單 - ${record.name}`;
+                
+                showDetailModal.value = false;
+                currentView.value = 'worksheetPreview';
+            };
+
+            const previewWorksheet = () => {
+                worksheetQuestions.value = generateQuestionPool(worksheetSettings.multipliers.map(Number), worksheetSettings.count);
+                worksheetTitle.value = `十十乘法學習單 - ${worksheetSettings.multipliers.sort((a,b)=>a-b).join(', ')}`;
+                currentView.value = 'worksheetPreview';
+            };
+
+            const printCurrentView = () => {
+                window.print();
+            };
+
+            const exportResultTxt = () => {
+                 let fb = aiFeedback.value;
+                 let fbText = "";
+                 if(fb.mastered.length > 0) fbText += `精熟: ${fb.mastered.join(',')}。`;
+                 if(fb.intermediate.length > 0) fbText += `中等: ${fb.intermediate.join(',')}。`;
+                 if(fb.unfamiliar.length > 0) fbText += `不熟: ${fb.unfamiliar.join(',')}。`;
+
+                 let content = `姓名: ${studentName.value} (${studentGrade.value || '?'}年級)\n時間: ${new Date().toLocaleString()}\n正確率: ${scorePercentage.value}%\n\nAI 建議摘要:\n${fbText}\n\n錯題列表:\n`;
+                 wrongQuestions.value.forEach(q => { content += `${q.q} (你的答案: ${q.userAns})\n`; });
+                 downloadFile(content, `練習結果_${studentName.value}.txt`, 'text/plain');
+            };
+            
+            const saveProficiencySettings = () => {
+                localStorage.setItem('proficiencySettings', JSON.stringify(proficiencySettings));
+                alert('評判標準已儲存！');
+            };
+
+            const getRodClass = (n) => { return `rod-${n}`; };
+            
+            const getDynamicRodStyle = (multiplier) => {
+                const availableH = containerHeight.value || 300;
+                let unitHeight = availableH / 12; 
+                unitHeight = Math.min(Math.max(unitHeight, 15), 40);
+                
+                return {
+                    height: `${multiplier * unitHeight}px`,
+                    width: `${unitHeight}px`, 
+                    backgroundSize: `100% ${unitHeight}px`, 
+                    marginRight: '4px'
+                };
+            };
+
+            return {
+                currentView, studentName, studentGrade, settings, currentQuestion, currentQuestionIndex, quizQuestions, progressPercent,
+                userInputs, submitAnswer, scorePercentage, scoreColor, aiFeedback, wrongQuestions, retryWrong, exportResultTxt,
+                startQuiz, goToStudentName, selectAllMultipliers, getRodClass, getDynamicRodStyle, isMobile, rodsContainer,
+                adminInputPass, checkAdminPass, loginMsg, adminTab, studentRecords, deleteRecord, viewRecordDetail, showDetailModal, selectedRecord,
+                exportAllRecords, exportSingleRecord, showPass, currentPassword, newPassword, updatePassword, resetPassword,
+                worksheetSettings, worksheetQuestions, worksheetTitle, paginatedQuestions,
+                previewWorksheet, printCurrentView, generateRemedialWorksheet,
+                proficiencySettings, saveProficiencySettings
+            };
+        }
+    }).mount('#app');
+</script>
+
+</body>
+</html>
